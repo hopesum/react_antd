@@ -5,8 +5,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { getVertifyCode, loginApi } from '../../../axios/login/login';
-
-
+import {  useDispatch } from 'react-redux';
+import { setUser } from '../../../store/features/userSlice';
 
 /* eslint-disable no-template-curly-in-string */
 const validateMessages = {
@@ -21,21 +21,20 @@ const validateMessages = {
 };
 /* eslint-enable no-template-curly-in-string */
 
-const onFinish = (values) => {
-  console.log(values);
-};
+
 export default memo(function LoginForm() {
   const [form] = Form.useForm();
   const [vertifyCode, setVertifyCode] = useState('')
   const [text, setText] = useState('')
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const changeVertifyImg = () => {
     getVertifyCode().then(res => {
       console.log(res, 9852335)
-      if(res.status === 200) {
+      if(res.code === 0 || res?.status == 200) {
         console.log(res.data)
-        setVertifyCode(res.data?.data?.base64)
-        setText(res?.data?.data?.text)
+        setVertifyCode(res.data?.base64)
+        setText(res?.data?.text)
       }
     })
   }
@@ -46,19 +45,22 @@ export default memo(function LoginForm() {
     changeVertifyImg()
   }, [])
   const login = () => {
-    console.log(form.getFieldsValue(),"我是form.getFieldsValue()");
+    console.log(form.getFieldsValue(),"我是form.getFieldsValue()",vertifyCode);
      form.validateFields().then(values => {
       console.log('Received values:', values);
       // 在这里处理获取到的表单数据，比如发送给后端进行验证等操作
-       console.log("验证码", values?.user?.code);
+       console.log("验证码", values?.user?.code,text);
       if (text !== values?.user?.code) {
         message.error('验证码错误')
         return
       }
       loginApi({ ...values?.user, tenantId: 2 }).then(res => {
         console.log(res,"我是登录的数据");
-        if (res?.status == 200) {
+        if (res?.status == 200 || res.code === 0) {
           message.success('登录成功')
+          localStorage.setItem('access_token', res?.data?.data?.access_token)
+          console.log(res,"我是登录陈高规格",res?.data?.user);
+          dispatch(setUser(res?.data?.user))
           navigate('/dashboard')
         }
       })
